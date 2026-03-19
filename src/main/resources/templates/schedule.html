@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(content=~{::div})}">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(content=~{::div})}">
 <head>
     <title>Schedule Bulk Mail</title>
 </head>
@@ -32,13 +32,29 @@
                 <div class="row mb-3">
                     <div class="col-md-8">
                         <label for="recipientList" class="form-label">Recipients (one email per line)</label>
-                        <textarea class="form-control" id="recipientList" name="recipientList" rows="6" required placeholder="user1@example.com&#10;user2@example.com"></textarea>
+                        <textarea class="form-control" id="recipientList" name="recipientList" rows="8" required placeholder="user1@example.com&#10;user2@example.com"></textarea>
                     </div>
                     <div class="col-md-4">
-                        <label for="delaySeconds" class="form-label">Delay Between Mails (seconds)</label>
-                        <input type="number" class="form-control" id="delaySeconds" name="delaySeconds" required value="5">
-                        <div class="form-text mt-3">
-                            Throttling helps avoid spam filters. Recommended: 5-10 seconds.
+                        <div class="border rounded p-3 bg-light">
+                            <h6>Import from Google Sheets</h6>
+                            <div class="mb-2">
+                                <label class="form-label small">Sheet URL</label>
+                                <input type="text" id="sheetUrl" class="form-control form-control-sm" placeholder="https://docs.google.com/...">
+                            </div>
+                            <div class="mb-2">
+                                <label class="form-label small">Sheet Number (1 for first sheet)</label>
+                                <input type="number" id="sheetIndex" class="form-control form-control-sm" value="1" min="1">
+                            </div>
+                            <button type="button" class="btn btn-sm btn-primary w-100" onclick="fetchFromSheet()">Fetch Emails</button>
+                            <div id="fetchStatus" class="small mt-1 text-muted"></div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <label for="delaySeconds" class="form-label">Delay Between Mails (seconds)</label>
+                            <input type="number" class="form-control" id="delaySeconds" name="delaySeconds" required value="5">
+                            <div class="form-text mt-3">
+                                Throttling helps avoid spam filters.
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -49,6 +65,50 @@
                 </div>
             </form>
         </div>
+
+        <script>
+            async function fetchFromSheet() {
+                const url = document.getElementById('sheetUrl').value;
+                const sheetIndex = document.getElementById('sheetIndex').value;
+                const statusDiv = document.getElementById('fetchStatus');
+                const recipientArea = document.getElementById('recipientList');
+
+                if (!url) {
+                    alert('Please enter a Google Sheet URL');
+                    return;
+                }
+
+                statusDiv.textContent = 'Connecting to Google Sheets...';
+                statusDiv.className = 'small mt-1 text-primary fw-bold';
+
+                try {
+                    const response = await fetch('/api/bulk-mail/fetch-sheets', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: url, sheetIndex: parseInt(sheetIndex) })
+                    });
+
+                    if (!response.ok) {
+                        const error = await response.text();
+                        throw new Error(error);
+                    }
+
+                    const emails = await response.json();
+                    if (emails.length === 0) {
+                        statusDiv.textContent = 'No emails found in this sheet.';
+                        statusDiv.className = 'small mt-1 text-warning';
+                    } else {
+                        recipientArea.value = emails.join('\n');
+                        statusDiv.textContent = `Successfully filled ${emails.length} emails from sheet #${sheetIndex}.`;
+                        statusDiv.className = 'small mt-1 text-success fw-bold';
+                    }
+                } catch (err) {
+                    console.error(err);
+                    statusDiv.textContent = 'Error: ' + err.message;
+                    statusDiv.className = 'small mt-1 text-danger';
+                }
+            }
+        </script>
     </div>
 </body>
 </html>

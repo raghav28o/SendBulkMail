@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,6 +23,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/")
 @RequiredArgsConstructor
 @Slf4j
+@Transactional(readOnly = true)
 public class EmailViewController {
 
     private final EmailBatchRepository batchRepository;
@@ -46,6 +48,7 @@ public class EmailViewController {
     }
 
     @PostMapping("/schedule")
+    @Transactional
     public String processSchedule(@ModelAttribute BulkEmailRequest request, @RequestParam("recipientList") String recipientList) {
         // Convert the textarea string into a list of emails
         List<String> recipients = Arrays.stream(recipientList.split("\n"))
@@ -63,19 +66,23 @@ public class EmailViewController {
         EmailBatch batch = batchRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid batch ID: " + id));
         
-        List<EmailRecipient> recipients = recipientRepository.findPendingByBatchId(id, PageRequest.of(page, 100));
-        // We'll also want to see non-pending ones, so let's adjust the repository later or use findByBatchId
-        // For now, let's just get the first 100 recipients for simplicity
-        
         long totalSent = recipientRepository.countByBatchIdAndStatus(id, EmailRecipient.RecipientStatus.SENT);
         long totalPending = recipientRepository.countByBatchIdAndStatus(id, EmailRecipient.RecipientStatus.PENDING);
         long totalFailed = recipientRepository.countByBatchIdAndStatus(id, EmailRecipient.RecipientStatus.FAILED);
+        long totalBounced = recipientRepository.countByBatchIdAndStatus(id, EmailRecipient.RecipientStatus.BOUNCED);
+        long totalOpened = recipientRepository.countByBatchIdAndOpenedAtIsNotNull(id);
+        long totalRecipients = recipientRepository.countByBatchId(id);
+        
+        List<EmailRecipient> recipients = recipientRepository.findByBatchId(id, PageRequest.of(page, 100));
         
         model.addAttribute("batch", batch);
-        model.addAttribute("recipients", batch.getRecipients()); // Caution: Lazy loading thousands might be slow
+        model.addAttribute("recipients", recipients);
         model.addAttribute("totalSent", totalSent);
         model.addAttribute("totalPending", totalPending);
         model.addAttribute("totalFailed", totalFailed);
+        model.addAttribute("totalBounced", totalBounced);
+        model.addAttribute("totalOpened", totalOpened);
+        model.addAttribute("totalRecipients", totalRecipients);
         
         return "batch-details";
     }

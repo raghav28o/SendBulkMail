@@ -36,6 +36,6 @@ public class EmailRecipient {
     private EmailBatch batch;
 
     public enum RecipientStatus {
-        PENDING, SENT, FAILED
+        PENDING, SENT, FAILED, BOUNCED, INVALID_ADDRESS
     }
 }

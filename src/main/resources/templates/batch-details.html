@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(content=~{::div})}">
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: layout(content=~{::div})}">
 <head>
     <title>Batch Details</title>
 </head>
@@ -14,7 +14,7 @@
             <div class="col-md-3">
                 <div class="card text-center p-3">
                     <h4 class="text-muted small">Total Recipients</h4>
-                    <h2 th:text="${#lists.size(batch.recipients)}">0</h2>
+                    <h2 th:text="${totalRecipients}">0</h2>
                 </div>
             </div>
             <div class="col-md-3">
@@ -26,10 +26,16 @@
             <div class="col-md-3">
                 <div class="card text-center p-3 border-info">
                     <h4 class="text-info small">Opened</h4>
-                    <h2 th:text="${#lists.size(batch.recipients.?[openedAt != null])}">0</h2>
+                    <h2 th:text="${totalOpened}">0</h2>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
+                <div class="card text-center p-3 border-danger">
+                    <h4 class="text-danger small">Bounced</h4>
+                    <h2 th:text="${totalBounced}">0</h2>
+                </div>
+            </div>
+            <div class="col-md-2">
                 <div class="card text-center p-3 border-warning">
                     <h4 class="text-warning small">Pending</h4>
                     <h2 th:text="${totalPending}">0</h2>
@@ -38,7 +44,7 @@
         </div>
 
         <div class="card p-4">
-            <h5 class="mb-3">Recipient List</h5>
+            <h5 class="mb-3">Recipient List (showing first 100)</h5>
             <div class="table-responsive">
                 <table class="table table-sm table-striped">
                     <thead>
@@ -51,7 +57,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr th:each="recipient : ${batch.recipients}">
+                        <tr th:each="recipient : ${recipients}">
                             <td th:text="${recipient.email}">email@example.com</td>
                             <td>
                                 <span th:class="${recipient.status.name() == 'SENT' ? 'badge bg-success' : (recipient.status.name() == 'PENDING' ? 'badge bg-secondary' : 'badge bg-danger')}"

@@ -14,5 +14,11 @@ public interface EmailRecipientRepository extends JpaRepository<EmailRecipient, 
     @Query("SELECT r FROM EmailRecipient r WHERE r.batch.id = :batchId AND r.status = 'PENDING'")
     List<EmailRecipient> findPendingByBatchId(Long batchId, Pageable pageable);
 
+    List<EmailRecipient> findByBatchId(Long batchId, Pageable pageable);
+
     long countByBatchIdAndStatus(Long batchId, EmailRecipient.RecipientStatus status);
+
+    long countByBatchIdAndOpenedAtIsNotNull(Long batchId);
+
+    long countByBatchId(Long batchId);
 }
