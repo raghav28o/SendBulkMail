@@ -15,7 +15,7 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/mail/**", "/api/bulk-mail/**", "/api/track/**").permitAll()
+                .requestMatchers("/", "/batches", "/schedule", "/batch/**", "/api/mail/**", "/api/bulk-mail/**", "/api/track/**").permitAll()
                 .anyRequest().permitAll()
             );
         return http.build();

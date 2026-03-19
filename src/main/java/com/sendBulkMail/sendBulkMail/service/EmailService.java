@@ -67,6 +67,7 @@ public class EmailService {
             String trackingPixel = "<img src=\"" + trackingUrl + "\" width=\"1\" height=\"1\" style=\"display:none;\" />";
             finalContent += trackingPixel;
         }
+        System.out.println("finalContent: " + finalContent);
         
         helper.setText(finalContent, true);
 

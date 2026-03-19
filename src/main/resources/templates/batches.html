@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(content=~{::div})}">
+<head>
+    <title>All Batches</title>
+</head>
+<body>
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Email Batches</h2>
+            <a th:href="@{/schedule}" class="btn btn-primary">Create New Batch</a>
+        </div>
+
+        <div class="card p-3">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Subject</th>
+                            <th>Status</th>
+                            <th>Limit / Day</th>
+                            <th>Start Time</th>
+                            <th>Created At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="batch : ${batches}">
+                            <td th:text="${batch.id}">1</td>
+                            <td th:text="${batch.subject}">Subject</td>
+                            <td>
+                                <span th:class="${batch.status.name() == 'ACTIVE' ? 'badge bg-success' : (batch.status.name() == 'COMPLETED' ? 'badge bg-secondary' : 'badge bg-warning')}"
+                                      th:text="${batch.status}">Status</span>
+                            </td>
+                            <td th:text="${batch.dailyLimit}">100</td>
+                            <td th:text="${batch.startTime}">09:00</td>
+                            <td th:text="${#temporals.format(batch.createdAt, 'dd-MM-yyyy HH:mm')}">Date</td>
+                            <td>
+                                <a th:href="@{/batch/{id}(id=${batch.id})}" class="btn btn-sm btn-outline-info">View Details</a>
+                            </td>
+                        </tr>
+                        <tr th:if="${batches.empty}">
+                            <td colspan="7" class="text-center text-muted py-4">No batches found. Schedule your first batch!</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

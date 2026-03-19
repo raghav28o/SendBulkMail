@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{layout :: html(content=~{::div})}">
+<head>
+    <title>Batch Details</title>
+</head>
+<body>
+    <div class="container">
+        <div class="mb-4">
+            <a th:href="@{/batches}" class="text-decoration-none">&larr; Back to Batches</a>
+            <h2 class="mt-2" th:text="${'Batch: ' + batch.subject}">Batch Details</h2>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center p-3">
+                    <h4 class="text-muted small">Total Recipients</h4>
+                    <h2 th:text="${#lists.size(batch.recipients)}">0</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center p-3 border-success">
+                    <h4 class="text-success small">Sent</h4>
+                    <h2 th:text="${totalSent}">0</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center p-3 border-info">
+                    <h4 class="text-info small">Opened</h4>
+                    <h2 th:text="${#lists.size(batch.recipients.?[openedAt != null])}">0</h2>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center p-3 border-warning">
+                    <h4 class="text-warning small">Pending</h4>
+                    <h2 th:text="${totalPending}">0</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="card p-4">
+            <h5 class="mb-3">Recipient List</h5>
+            <div class="table-responsive">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Sent At</th>
+                            <th>Opened At</th>
+                            <th>Opens</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="recipient : ${batch.recipients}">
+                            <td th:text="${recipient.email}">email@example.com</td>
+                            <td>
+                                <span th:class="${recipient.status.name() == 'SENT' ? 'badge bg-success' : (recipient.status.name() == 'PENDING' ? 'badge bg-secondary' : 'badge bg-danger')}"
+                                      th:text="${recipient.status}">Status</span>
+                            </td>
+                            <td th:text="${recipient.sentAt != null ? #temporals.format(recipient.sentAt, 'dd-MM HH:mm:ss') : '-'}">-</td>
+                            <td th:text="${recipient.openedAt != null ? #temporals.format(recipient.openedAt, 'dd-MM HH:mm:ss') : '-'}">-</td>
+                            <td th:text="${recipient.openCount}">0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
