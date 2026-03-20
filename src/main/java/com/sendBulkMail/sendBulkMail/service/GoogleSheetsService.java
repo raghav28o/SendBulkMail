@@ -1,5 +1,6 @@
 package com.sendBulkMail.sendBulkMail.service;
 
+import com.sendBulkMail.sendBulkMail.dto.RecipientDTO;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.JsonFactory;
@@ -29,7 +30,7 @@ public class GoogleSheetsService {
     // More robust email regex
     private static final Pattern EMAIL_PATTERN = Pattern.compile("[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}");
 
-    public List<String> fetchEmailsFromSheet(String sheetUrl, Integer sheetIndex) throws GeneralSecurityException, IOException {
+    public List<RecipientDTO> fetchEmailsFromSheet(String sheetUrl, Integer sheetIndex) throws GeneralSecurityException, IOException {
         if (apiKey == null || apiKey.isEmpty()) {
             log.error("Google API Key is missing!");
             throw new IllegalStateException("Google API Key not configured in application.properties. Please add google.api.key=YOUR_KEY");
@@ -66,22 +67,30 @@ public class GoogleSheetsService {
 
 
         List<List<Object>> values = response.getValues();
-        List<String> emails = new ArrayList<>();
+        List<RecipientDTO> recipients = new ArrayList<>();
 
         if (values != null) {
             for (List<Object> row : values) {
+                String foundEmail = null;
+                String foundName = null;
                 for (Object cell : row) {
-                    String cellValue = cell.toString();
+                    if (cell == null) continue;
+                    String cellValue = cell.toString().trim();
                     Matcher matcher = EMAIL_PATTERN.matcher(cellValue);
-                    while (matcher.find()) {
-                        emails.add(matcher.group());
+                    if (matcher.find() && foundEmail == null) {
+                        foundEmail = matcher.group();
+                    } else if (!cellValue.isEmpty() && foundName == null) {
+                        foundName = cellValue;
                     }
+                }
+                if (foundEmail != null) {
+                    recipients.add(new RecipientDTO(foundEmail, foundName));
                 }
             }
         }
 
-        log.info("Extracted {} emails from sheet", emails.size());
-        return emails;
+        log.info("Extracted {} recipients from sheet", recipients.size());
+        return recipients;
     }
 
     private String extractSpreadsheetId(String url) {

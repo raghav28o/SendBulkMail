@@ -39,8 +39,9 @@ public class BulkEmailService {
         EmailBatch savedBatch = batchRepository.save(batch);
 
         List<EmailRecipient> recipients = request.getRecipients().stream()
-                .map(email -> EmailRecipient.builder()
-                        .email(email)
+                .map(dto -> EmailRecipient.builder()
+                        .email(dto.getEmail())
+                        .name(dto.getName())
                         .status(EmailRecipient.RecipientStatus.PENDING)
                         .batch(savedBatch)
                         .build())

@@ -5,6 +5,7 @@ import com.sendBulkMail.sendBulkMail.repository.EmailRecipientRepository;
 import jakarta.mail.*;
 import jakarta.mail.search.FlagTerm;
 import jakarta.mail.search.OrTerm;
+import jakarta.mail.search.SearchTerm;
 import jakarta.mail.search.SubjectTerm;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,10 +24,10 @@ public class BounceHandlerService {
 
     private final EmailRecipientRepository recipientRepository;
 
-    @Value("${spring.mail.imap.host}")
+    @Value("${spring.mail.imap.host:imap.gmail.com}")
     private String host;
 
-    @Value("${spring.mail.imap.port}")
+    @Value("${spring.mail.imap.port:993}")
     private String port;
 
     @Value("${spring.mail.username}")

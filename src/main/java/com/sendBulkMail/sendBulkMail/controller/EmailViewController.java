@@ -1,6 +1,7 @@
 package com.sendBulkMail.sendBulkMail.controller;
 
 import com.sendBulkMail.sendBulkMail.dto.BulkEmailRequest;
+import com.sendBulkMail.sendBulkMail.dto.RecipientDTO;
 import com.sendBulkMail.sendBulkMail.model.EmailBatch;
 import com.sendBulkMail.sendBulkMail.model.EmailRecipient;
 import com.sendBulkMail.sendBulkMail.repository.EmailBatchRepository;
@@ -14,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -50,10 +50,18 @@ public class EmailViewController {
     @PostMapping("/schedule")
     @Transactional
     public String processSchedule(@ModelAttribute BulkEmailRequest request, @RequestParam("recipientList") String recipientList) {
-        // Convert the textarea string into a list of emails
-        List<String> recipients = Arrays.stream(recipientList.split("\n"))
+        // Convert the textarea string into a list of RecipientDTO
+        List<RecipientDTO> recipients = Arrays.stream(recipientList.split("\n"))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
+                .map(line -> {
+                    if (line.contains(",")) {
+                        String[] parts = line.split(",", 2);
+                        return new RecipientDTO(parts[0].trim(), parts[1].trim());
+                    } else {
+                        return new RecipientDTO(line, null);
+                    }
+                })
                 .collect(Collectors.toList());
         request.setRecipients(recipients);
         

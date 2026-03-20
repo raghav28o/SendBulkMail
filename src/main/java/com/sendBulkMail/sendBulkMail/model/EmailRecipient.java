@@ -19,6 +19,8 @@ public class EmailRecipient {
 
     private String email;
 
+    private String name;
+
     @Enumerated(EnumType.STRING)
     private RecipientStatus status;
 

@@ -39,8 +39,20 @@ public class BulkEmailTaskExecutor {
         for (EmailRecipient recipient : pendingRecipients) {
             try {
                 log.debug("Sending email to: {}", recipient.getEmail());
+                
+                // Dynamic Personalization
+                String personalizedSubject = batch.getSubject();
+                String personalizedBody = batch.getBody();
+                
+                String nameReplacement = (recipient.getName() != null && !recipient.getName().isEmpty()) 
+                        ? " " + recipient.getName() 
+                        : "";
+                
+                personalizedSubject = personalizedSubject.replace("[[NAME]]", nameReplacement);
+                personalizedBody = personalizedBody.replace("[[NAME]]", nameReplacement);
+
                 // Using sendHtmlEmail to support tracking pixel even if text is provided
-                emailService.sendHtmlEmail(recipient.getEmail(), batch.getSubject(), batch.getBody(), recipient.getId());
+                emailService.sendHtmlEmail(recipient.getEmail(), personalizedSubject, personalizedBody, recipient.getId());
                 recipient.setStatus(EmailRecipient.RecipientStatus.SENT);
                 recipient.setSentAt(LocalDateTime.now());
             } catch (Exception e) {

@@ -8,7 +8,7 @@ import java.util.List;
 public class BulkEmailRequest {
     private String subject;
     private String body;
-    private List<String> recipients;
+    private List<RecipientDTO> recipients;
     private Integer dailyLimit;
     private LocalTime startTime;
     private Long delaySeconds;
