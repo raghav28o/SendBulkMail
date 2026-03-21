@@ -71,6 +71,15 @@ public class EmailService {
         helper.setSubject(subject);
 
         String finalContent = htmlContent;
+        // If the content doesn't already contain our wrapper and doesn't look like a full HTML document,
+        // wrap it to preserve whitespace and newlines from plain text input.
+        if (htmlContent != null && !htmlContent.contains("white-space: pre-wrap")) {
+            String trimmed = htmlContent.trim().toLowerCase();
+            if (!trimmed.startsWith("<!doctype") && !trimmed.startsWith("<html")) {
+                finalContent = "<div style=\"white-space: pre-wrap; font-family: sans-serif; font-size: 14px; line-height: 1.6;\">" + htmlContent + "</div>";
+            }
+        }
+        
         if (recipientId != null) {
             String trackingUrl = appBaseUrl + "/api/track/open/" + recipientId;
             String trackingPixel = "<img src=\"" + trackingUrl + "\" width=\"1\" height=\"1\" style=\"display:none;\" />";
