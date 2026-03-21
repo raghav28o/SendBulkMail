@@ -10,4 +10,5 @@ import java.util.List;
 public interface EmailBatchRepository extends JpaRepository<EmailBatch, Long> {
     List<EmailBatch> findByStatus(EmailBatch.BatchStatus status);
     List<EmailBatch> findAllByOrderByCreatedAtDesc();
+    List<EmailBatch> findByCreatedByOrderByCreatedAtDesc(String createdBy);
 }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html th:fragment="layout(content)" xmlns:th="http://www.thymeleaf.org">
+<html th:fragment="layout(content)" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,12 +19,20 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item" sec:authorize="isAuthenticated()">
+                        <span class="nav-link text-white me-3" sec:authentication="principal.attributes['email']">user@example.com</span>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link" th:href="@{/batches}">My Batches</a>
                     </li>
                     <li class="nav-item">
                         <a class="btn btn-light ms-2" th:href="@{/schedule}">Schedule New</a>
+                    </li>
+                    <li class="nav-item ms-2" sec:authorize="isAuthenticated()">
+                        <form th:action="@{/logout}" method="post" style="display:inline;">
+                            <button type="submit" class="btn btn-outline-light btn-sm">Logout</button>
+                        </form>
                     </li>
                 </ul>
             </div>

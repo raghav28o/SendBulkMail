@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -20,12 +22,24 @@ public class BulkEmailTaskExecutor {
 
     private final EmailRecipientRepository recipientRepository;
     private final EmailBatchRepository batchRepository;
-    private final EmailService emailService;
+    private final GmailService gmailService;
+    private final OAuth2AuthorizedClientService authorizedClientService;
 
     @Async
     public void sendDailyBatch(EmailBatch batch) {
-        log.info("Starting daily execution for batch ID: {}, subject: {}", batch.getId(), batch.getSubject());
+        log.info("Starting daily execution for batch ID: {}, subject: {}, createdBy (principal): {}, userEmail: {}", 
+                batch.getId(), batch.getSubject(), batch.getCreatedBy(), batch.getUserEmail());
         
+        String principalName = batch.getCreatedBy();
+        String userEmail = batch.getUserEmail();
+        
+        // Verify we still have a valid token (at least that we can load the client)
+        OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient("google", principalName);
+        if (client == null) {
+            log.error("Cannot execute batch {}: No authorized client found for principal {}", batch.getId(), principalName);
+            return;
+        }
+
         List<EmailRecipient> pendingRecipients = recipientRepository.findPendingByBatchId(
                 batch.getId(), PageRequest.of(0, batch.getDailyLimit()));
 
@@ -51,8 +65,8 @@ public class BulkEmailTaskExecutor {
                 personalizedSubject = personalizedSubject.replace("[[NAME]]", nameReplacement);
                 personalizedBody = personalizedBody.replace("[[NAME]]", nameReplacement);
 
-                // Using sendHtmlEmail to support tracking pixel even if text is provided
-                emailService.sendHtmlEmail(recipient.getEmail(), personalizedSubject, personalizedBody, recipient.getId());
+                // Using gmailService with principalName and userEmail
+                gmailService.sendEmail(principalName, recipient.getEmail(), personalizedSubject, personalizedBody, recipient.getId(), userEmail);
                 recipient.setStatus(EmailRecipient.RecipientStatus.SENT);
                 recipient.setSentAt(LocalDateTime.now());
             } catch (Exception e) {

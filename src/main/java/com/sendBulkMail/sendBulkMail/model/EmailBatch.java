@@ -33,6 +33,10 @@ public class EmailBatch {
     @Enumerated(EnumType.STRING)
     private BatchStatus status;
 
+    private String createdBy;
+
+    private String userEmail;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime lastRunDate;

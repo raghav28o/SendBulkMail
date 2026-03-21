@@ -21,4 +21,6 @@ public interface EmailRecipientRepository extends JpaRepository<EmailRecipient, 
     long countByBatchIdAndOpenedAtIsNotNull(Long batchId);
 
     long countByBatchId(Long batchId);
+
+    List<EmailRecipient> findByEmailIgnoreCaseAndStatus(String email, EmailRecipient.RecipientStatus status);
 }

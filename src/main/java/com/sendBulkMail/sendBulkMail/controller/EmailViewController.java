@@ -9,6 +9,7 @@ import com.sendBulkMail.sendBulkMail.repository.EmailRecipientRepository;
 import com.sendBulkMail.sendBulkMail.service.BulkEmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,20 +37,27 @@ public class EmailViewController {
     }
 
     @GetMapping("/batches")
-    public String listBatches(Model model) {
-        model.addAttribute("batches", batchRepository.findAllByOrderByCreatedAtDesc());
+    public String listBatches(Model model, OAuth2AuthenticationToken authentication) {
+        String principalName = authentication.getName();
+        String email = authentication.getPrincipal().getAttribute("email");
+        model.addAttribute("batches", batchRepository.findByCreatedByOrderByCreatedAtDesc(principalName));
+        model.addAttribute("userEmail", email);
         return "batches";
     }
 
     @GetMapping("/schedule")
-    public String showScheduleForm(Model model) {
+    public String showScheduleForm(Model model, OAuth2AuthenticationToken authentication) {
         model.addAttribute("request", new BulkEmailRequest());
+        model.addAttribute("userEmail", authentication.getPrincipal().getAttribute("email"));
         return "schedule";
     }
 
     @PostMapping("/schedule")
     @Transactional
-    public String processSchedule(@ModelAttribute BulkEmailRequest request, @RequestParam("recipientList") String recipientList) {
+    public String processSchedule(@ModelAttribute BulkEmailRequest request, 
+                                @RequestParam("recipientList") String recipientList,
+                                OAuth2AuthenticationToken authentication) {
+        String principalName = authentication.getName();
         // Convert the textarea string into a list of RecipientDTO
         List<RecipientDTO> recipients = Arrays.stream(recipientList.split("\n"))
                 .map(String::trim)
@@ -65,14 +73,25 @@ public class EmailViewController {
                 .collect(Collectors.toList());
         request.setRecipients(recipients);
         
-        bulkEmailService.createBatch(request);
+        String userEmail = authentication.getPrincipal().getAttribute("email");
+        bulkEmailService.createBatch(request, principalName, userEmail);
         return "redirect:/batches";
     }
 
     @GetMapping("/batch/{id}")
-    public String viewBatchDetails(@PathVariable Long id, @RequestParam(defaultValue = "0") int page, Model model) {
+    public String viewBatchDetails(@PathVariable Long id, 
+                                 @RequestParam(defaultValue = "0") int page, 
+                                 Model model,
+                                 OAuth2AuthenticationToken authentication) {
+        String principalName = authentication.getName();
+        String email = authentication.getPrincipal().getAttribute("email");
         EmailBatch batch = batchRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid batch ID: " + id));
+        
+        // Security Check: Ensure user owns this batch
+        if (!principalName.equals(batch.getCreatedBy())) {
+            return "redirect:/batches";
+        }
         
         long totalSent = recipientRepository.countByBatchIdAndStatus(id, EmailRecipient.RecipientStatus.SENT);
         long totalPending = recipientRepository.countByBatchIdAndStatus(id, EmailRecipient.RecipientStatus.PENDING);
@@ -91,6 +110,7 @@ public class EmailViewController {
         model.addAttribute("totalBounced", totalBounced);
         model.addAttribute("totalOpened", totalOpened);
         model.addAttribute("totalRecipients", totalRecipients);
+        model.addAttribute("userEmail", email);
         
         return "batch-details";
     }

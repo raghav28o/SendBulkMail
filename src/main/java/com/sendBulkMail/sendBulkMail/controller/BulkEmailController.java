@@ -4,11 +4,12 @@ import com.sendBulkMail.sendBulkMail.dto.BulkEmailRequest;
 import com.sendBulkMail.sendBulkMail.dto.RecipientDTO;
 import com.sendBulkMail.sendBulkMail.model.EmailBatch;
 import com.sendBulkMail.sendBulkMail.service.BulkEmailService;
-import com.sendBulkMail.sendBulkMail.service.EmailService;
+import com.sendBulkMail.sendBulkMail.service.GmailService;
 import com.sendBulkMail.sendBulkMail.service.GoogleSheetsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,12 +23,16 @@ public class BulkEmailController {
 
     private final BulkEmailService bulkEmailService;
     private final GoogleSheetsService googleSheetsService;
-    private final EmailService emailService;
+    private final GmailService gmailService;
 
     @PostMapping("/schedule")
-    public ResponseEntity<String> scheduleBulkEmail(@RequestBody BulkEmailRequest request) {
-        log.info("Received request to schedule bulk email: {}", request.getSubject());
-        EmailBatch batch = bulkEmailService.createBatch(request);
+    public ResponseEntity<String> scheduleBulkEmail(@RequestBody BulkEmailRequest request, OAuth2AuthenticationToken authentication) {
+        String userEmail = authentication.getPrincipal().getAttribute("email");
+        String principalName = authentication.getName();
+        log.info("Received request to schedule bulk email from {}: {}", userEmail, request.getSubject());
+        
+        // We store the principal name in createdBy to ensure we can load the token later for the background task
+        EmailBatch batch = bulkEmailService.createBatch(request, principalName, userEmail);
         return ResponseEntity.ok("Bulk email batch created and scheduled with ID: " + batch.getId());
     }
 
@@ -55,12 +60,14 @@ public class BulkEmailController {
     }
 
     @PostMapping("/test-send")
-    public ResponseEntity<?> testSend(@RequestBody Map<String, String> payload) {
+    public ResponseEntity<?> testSend(@RequestBody Map<String, String> payload, OAuth2AuthenticationToken authentication) {
+        String userEmail = authentication.getPrincipal().getAttribute("email");
+        String principalName = authentication.getName();
         String to = payload.get("to");
         String subject = payload.get("subject");
         String body = payload.get("body");
 
-        log.info("Sending test email to: {}", to);
+        log.info("Sending test email from {} (principal: {}) to: {}", userEmail, principalName, to);
         
         try {
             // Apply a sample personalization
@@ -68,7 +75,8 @@ public class BulkEmailController {
             String testSubject = subject.replace("[[NAME]]", " " + sampleName);
             String testBody = body.replace("[[NAME]]", " " + sampleName);
             
-            emailService.sendHtmlEmail(to, testSubject, testBody, null);
+            // GmailService now expects principalName
+            gmailService.sendEmail(principalName, to, testSubject, testBody, null, userEmail);
             return ResponseEntity.ok("Test email sent successfully to " + to);
         } catch (Exception e) {
             log.error("Failed to send test email", e);

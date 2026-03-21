@@ -23,8 +23,8 @@ public class BulkEmailService {
     private final EmailRecipientRepository recipientRepository;
 
     @Transactional
-    public EmailBatch createBatch(BulkEmailRequest request) {
-        log.info("Creating new bulk email batch for subject: {}", request.getSubject());
+    public EmailBatch createBatch(BulkEmailRequest request, String principalName, String userEmail) {
+        log.info("Creating new bulk email batch for subject: {} by principal: {} (email: {})", request.getSubject(), principalName, userEmail);
         
         EmailBatch batch = EmailBatch.builder()
                 .subject(request.getSubject())
@@ -33,6 +33,8 @@ public class BulkEmailService {
                 .startTime(request.getStartTime())
                 .delaySeconds(request.getDelaySeconds())
                 .status(EmailBatch.BatchStatus.ACTIVE)
+                .createdBy(principalName)
+                .userEmail(userEmail)
                 .createdAt(LocalDateTime.now())
                 .build();
 

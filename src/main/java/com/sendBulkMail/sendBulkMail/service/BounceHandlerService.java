@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -107,15 +108,15 @@ public class BounceHandlerService {
         while (matcher.find()) {
             String email = matcher.group();
             // We look for recipients with this email and status 'SENT' to mark as 'BOUNCED'
-            // To avoid marking your own email as bounced, we filter by recipient status
-            recipientRepository.findAll().stream()
-                    .filter(r -> r.getEmail().equalsIgnoreCase(email) && r.getStatus() == EmailRecipient.RecipientStatus.SENT)
-                    .forEach(recipient -> {
-                        log.warn("Marking email as BOUNCED: {}", email);
-                        recipient.setStatus(EmailRecipient.RecipientStatus.BOUNCED);
-                        recipient.setErrorMessage("Delivery Status Notification: Recipient not found or rejected.");
-                        recipientRepository.save(recipient);
-                    });
+            // Using optimized repository query
+            List<EmailRecipient> recipients = recipientRepository.findByEmailIgnoreCaseAndStatus(email, EmailRecipient.RecipientStatus.SENT);
+            
+            for (EmailRecipient recipient : recipients) {
+                log.warn("Marking email as BOUNCED: {} for batch ID: {}", email, recipient.getBatch().getId());
+                recipient.setStatus(EmailRecipient.RecipientStatus.BOUNCED);
+                recipient.setErrorMessage("Delivery Status Notification: Recipient not found or rejected.");
+                recipientRepository.save(recipient);
+            }
         }
     }
 }
