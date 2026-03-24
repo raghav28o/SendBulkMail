@@ -21,6 +21,7 @@ public class BulkEmailService {
 
     private final EmailBatchRepository batchRepository;
     private final EmailRecipientRepository recipientRepository;
+    private final EmailValidatorService emailValidatorService;
 
     @Transactional
     public EmailBatch createBatch(BulkEmailRequest request) {
@@ -39,6 +40,13 @@ public class BulkEmailService {
         EmailBatch savedBatch = batchRepository.save(batch);
 
         List<EmailRecipient> recipients = request.getRecipients().stream()
+                .filter(dto -> {
+                    boolean isValid = emailValidatorService.isValid(dto.getEmail());
+                    if (!isValid) {
+                        log.warn("Filtering out invalid recipient email: {}", dto.getEmail());
+                    }
+                    return isValid;
+                })
                 .map(dto -> EmailRecipient.builder()
                         .email(dto.getEmail())
                         .name(dto.getName())
@@ -49,7 +57,8 @@ public class BulkEmailService {
 
         recipientRepository.saveAll(recipients);
         
-        log.info("Batch created with ID: {} and {} recipients", savedBatch.getId(), recipients.size());
+        log.info("Batch created with ID: {} and {} valid recipients ({} filtered out)", 
+                savedBatch.getId(), recipients.size(), request.getRecipients().size() - recipients.size());
         return savedBatch;
     }
 }

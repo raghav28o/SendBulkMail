@@ -7,6 +7,7 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.sheets.v4.Sheets;
 import com.google.api.services.sheets.v4.model.ValueRange;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -20,15 +21,16 @@ import java.util.regex.Pattern;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class GoogleSheetsService {
 
     @Value("${google.api.key:}")
     private String apiKey;
 
+    private final EmailValidatorService emailValidatorService;
+
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static final String APPLICATION_NAME = "BulkMailer";
-    // More robust email regex
-    private static final Pattern EMAIL_PATTERN = Pattern.compile("[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}");
 
     public List<RecipientDTO> fetchEmailsFromSheet(String sheetUrl, Integer sheetIndex) throws GeneralSecurityException, IOException {
         if (apiKey == null || apiKey.isEmpty()) {
@@ -76,9 +78,15 @@ public class GoogleSheetsService {
                 for (Object cell : row) {
                     if (cell == null) continue;
                     String cellValue = cell.toString().trim();
-                    Matcher matcher = EMAIL_PATTERN.matcher(cellValue);
-                    if (matcher.find() && foundEmail == null) {
-                        foundEmail = matcher.group();
+                    
+                    // Simple regex check first to see if it looks like an email
+                    if (cellValue.contains("@") && emailValidatorService.isRegexValid(cellValue)) {
+                        // Only perform MX check if regex passes
+                        if (emailValidatorService.hasMxRecord(cellValue)) {
+                            foundEmail = cellValue;
+                        } else {
+                            log.warn("Filtered out email with no valid MX record: {}", cellValue);
+                        }
                     } else if (!cellValue.isEmpty() && foundName == null) {
                         foundName = cellValue;
                     }
